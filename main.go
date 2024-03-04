@@ -72,7 +72,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ffmpegCmd := fmt.Sprintf("timeout --foreground 5 ffmpeg -i \"%s\" -af loudnorm=I=-16:dual_mono=true:TP=-1.5:LRA=11:print_format=summary -f null -", filePath)
+	ffmpegCmd := fmt.Sprintf("timeout --foreground 25 ffmpeg -i \"%s\" -af loudnorm=I=-16:dual_mono=true:TP=-1.5:LRA=11:print_format=summary -f null -", filePath)
 
 	go func() {
 		output, err := executeFFmpegCommand(ffmpegCmd)
