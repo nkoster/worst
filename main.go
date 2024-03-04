@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -71,12 +72,14 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Uitvoeren van het commando na succesvolle upload
+	ffmpegCmd := fmt.Sprintf("2>&1 timeout --foreground 5 ffmpeg -i \"%s\" -af loudnorm=I=-16:dual_mono=true:TP=-1.5:LRA=11:print_format=summary -f null -", filePath)
+
 	go func() {
-		output, err := executeCommand("ls", []string{"-l", filePath})
+		output, err := executeFFmpegCommand(ffmpegCmd)
 		if err != nil {
-			log.Printf("Fout bij het uitvoeren van commando: %v", err)
-			output = "Fout bij het uitvoeren van commando"
+			log.Printf("Fout bij het uitvoeren van ffmpeg commando: %v\n%v", err, ffmpegCmd)
+			commandOutputChan <- "Fout bij het uitvoeren van ffmpeg commando"
+			return
 		}
 		commandOutputChan <- output
 	}()
@@ -106,8 +109,26 @@ func eventsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func executeCommand(command string, args []string) (string, error) {
-	cmd := exec.Command(command, args...)
-	output, err := cmd.CombinedOutput()
-	return string(output), err
+func executeFFmpegCommand(cmd string) (string, error) {
+	// Voer het volledige commando uit binnen een bash shell
+	command := exec.Command("bash", "-c", cmd)
+	var stdout, stderr bytes.Buffer
+	command.Stdout = &stdout
+	command.Stderr = &stderr
+
+	err := command.Run()
+
+	// Verwerk de exit code 124 als succesvol (specifiek voor de timeout situatie)
+	if exitErr, ok := err.(*exec.ExitError); ok {
+		if exitErr.ExitCode() == 124 {
+			return stdout.String(), nil // Beschouw timeout als een verwacht resultaat
+		}
+	}
+
+	if err != nil {
+		// In geval van een echte fout, retourneer ook stderr om het debuggen te vergemakkelijken
+		return "", fmt.Errorf("fout bij het uitvoeren van commando: %v, stderr: %s", err, stderr.String())
+	}
+
+	return stdout.String(), nil
 }
