@@ -72,7 +72,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ffmpegCmd := fmt.Sprintf("2>&1 timeout --foreground 5 ffmpeg -i \"%s\" -af loudnorm=I=-16:dual_mono=true:TP=-1.5:LRA=11:print_format=summary -f null -", filePath)
+	ffmpegCmd := fmt.Sprintf("timeout --foreground 5 ffmpeg -i \"%s\" -af loudnorm=I=-16:dual_mono=true:TP=-1.5:LRA=11:print_format=summary -f null -", filePath)
 
 	go func() {
 		output, err := executeFFmpegCommand(ffmpegCmd)
@@ -84,7 +84,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		commandOutputChan <- output
 	}()
 
-	w.Write([]byte("Bestand succesvol geüpload\n"))
+	w.Write([]byte("Upload okay\n"))
 }
 
 func eventsHandler(w http.ResponseWriter, r *http.Request) {
@@ -110,25 +110,32 @@ func eventsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func executeFFmpegCommand(cmd string) (string, error) {
-	// Voer het volledige commando uit binnen een bash shell
 	command := exec.Command("bash", "-c", cmd)
-	var stdout, stderr bytes.Buffer
-	command.Stdout = &stdout
-	command.Stderr = &stderr
+	var outputBuffer bytes.Buffer
+	command.Stdout = &outputBuffer
+	command.Stderr = &outputBuffer
 
 	err := command.Run()
-
-	// Verwerk de exit code 124 als succesvol (specifiek voor de timeout situatie)
-	if exitErr, ok := err.(*exec.ExitError); ok {
-		if exitErr.ExitCode() == 124 {
-			return stdout.String(), nil // Beschouw timeout als een verwacht resultaat
-		}
-	}
+	output := outputBuffer.String()
 
 	if err != nil {
-		// In geval van een echte fout, retourneer ook stderr om het debuggen te vergemakkelijken
-		return "", fmt.Errorf("fout bij het uitvoeren van commando: %v, stderr: %s", err, stderr.String())
+		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 124 {
+			// Behandel exit status 124 (timeout) als een succesvolle afronding
+			return processFFmpegOutput(output), nil
+		}
+		return processFFmpegOutput(output), fmt.Errorf("commando voltooid met fout: %v, output: %s", err, output)
 	}
 
-	return stdout.String(), nil
+	return processFFmpegOutput(output), nil
+}
+
+func processFFmpegOutput(output string) string {
+	var result strings.Builder
+	lines := strings.Split(output, "\n")
+	for _, line := range lines {
+		if strings.Contains(line, "Input Integrated") || strings.Contains(line, "Output Integrated") || strings.Contains(line, "Input True Peak") || strings.Contains(line, "Output True Peak") || strings.Contains(line, "Input LRA") || strings.Contains(line, "Output LRA") || strings.Contains(line, "Input Threshold") || strings.Contains(line, "Output Threshold") || strings.Contains(line, "Normalization Type") || strings.Contains(line, "Target Offset") {
+			result.WriteString(line + "\n")
+		}
+	}
+	return result.String()
 }
