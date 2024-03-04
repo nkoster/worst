@@ -22,15 +22,15 @@ func main() {
 	http.HandleFunc("/events", eventsHandler)
 	http.Handle("/", http.FileServer(http.Dir("./ui")))
 
-	fmt.Println("Server gestart op http://localhost:3000")
+	fmt.Println("Server running: http://localhost:3000")
 	if err := http.ListenAndServe(":3000", nil); err != nil {
-		log.Fatalf("Fout bij het starten van de server: %v", err)
+		log.Fatalf("Error starting server: %v", err)
 	}
 }
 
 func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
-		http.Error(w, "Alleen POST is toegestaan", http.StatusMethodNotAllowed)
+		http.Error(w, "Only POST allowd", http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -39,13 +39,13 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	const maxUploadSize = 1024 * 1024 * 1024 // 1GB
 	if err := r.ParseMultipartForm(maxUploadSize); err != nil {
-		http.Error(w, "Het bestand is te groot", http.StatusBadRequest)
+		http.Error(w, "File too big", http.StatusBadRequest)
 		return
 	}
 
 	file, fileHeader, err := r.FormFile("file")
 	if err != nil {
-		http.Error(w, "Ongeldig bestand", http.StatusBadRequest)
+		http.Error(w, "Invalid file", http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
@@ -56,19 +56,19 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	fileExt := strings.ToLower(filepath.Ext(fileName))
 	allowedExts := map[string]bool{".mp3": true, ".wav": true, ".ogg": true}
 	if _, ok := allowedExts[fileExt]; !ok {
-		http.Error(w, "Ongeldig bestandsformaat", http.StatusBadRequest)
+		http.Error(w, "File format not allowed", http.StatusBadRequest)
 		return
 	}
 
 	dst, err := os.Create(filePath)
 	if err != nil {
-		http.Error(w, "Fout bij het aanmaken van bestand", http.StatusInternalServerError)
+		http.Error(w, "Cannot create file", http.StatusInternalServerError)
 		return
 	}
 	defer dst.Close()
 
 	if _, err := io.Copy(dst, file); err != nil {
-		http.Error(w, "Fout bij het opslaan van bestand", http.StatusInternalServerError)
+		http.Error(w, "Cannot save file", http.StatusInternalServerError)
 		return
 	}
 
@@ -77,20 +77,21 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		output, err := executeFFmpegCommand(ffmpegCmd)
 		if err != nil {
-			log.Printf("Fout bij het uitvoeren van ffmpeg commando: %v\n%v", err, ffmpegCmd)
-			commandOutputChan <- "Fout bij het uitvoeren van ffmpeg commando"
+			// ffmpeg error(s)
+			log.Printf("ffmpeg error: %v\n%v", err, ffmpegCmd)
+			commandOutputChan <- "ffmpeg error"
 			return
 		}
 		commandOutputChan <- output
 	}()
 
-	w.Write([]byte("Upload okay\n"))
+	w.Write([]byte("Upload ready\n"))
 }
 
 func eventsHandler(w http.ResponseWriter, r *http.Request) {
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		http.Error(w, "Streaming wordt niet ondersteund", http.StatusInternalServerError)
+		http.Error(w, "Streaming not supported", http.StatusInternalServerError)
 		return
 	}
 
@@ -123,7 +124,7 @@ func executeFFmpegCommand(cmd string) (string, error) {
 			// Behandel exit status 124 (timeout) als een succesvolle afronding
 			return processFFmpegOutput(output), nil
 		}
-		return processFFmpegOutput(output), fmt.Errorf("commando voltooid met fout: %v, output: %s", err, output)
+		return processFFmpegOutput(output), fmt.Errorf("commando ready with error: %v, output: %s", err, output)
 	}
 
 	return processFFmpegOutput(output), nil

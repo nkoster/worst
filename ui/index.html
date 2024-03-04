@@ -4,21 +4,17 @@
     <meta charset="UTF-8">
     <title>Bestand Uploaden en Commando Uitvoer</title>
     <style>
-        /* Eenvoudige styling voor de voortgangsbalk */
         #progressBarContainer {
             width: 100%;
             background-color: #ddd;
         }
-
         #progressBar {
             width: 0%;
             height: 30px;
             background-color: #0d6efd;
         }
-
-        /* Stijl voor de commando-uitvoer sectie */
         #commandOutput {
-            white-space: pre-wrap; /* Zorgt ervoor dat whitespaces en newlines behouden blijven */
+            white-space: pre-wrap;
             background-color: #f4f4f4;
             border: 1px solid #ddd;
             padding: 10px;
@@ -27,17 +23,16 @@
 </head>
 <body>
 
-<h2>Upload Bestand</h2>
+<h2>Audio file analyzer</h2>
 <input type="file" id="fileInput" name="file" accept=".mp3,.wav,.ogg">
-<button onclick="uploadFile()">Uploaden</button>
+<button onclick="uploadFile()">Upload MP3/WAV/OGG</button>
 
 <div id="progressBarContainer">
     <div id="progressBar"></div>
 </div>
 <div id="progressPercentage">0%</div>
 
-<h2>Commando Uitvoer</h2>
-<pre id="commandOutput">Wachten op data...</pre>
+<pre id="commandOutput">Analyze report will appear here, please wait...</pre>
 
 <script>
 function uploadFile() {
@@ -53,16 +48,16 @@ function uploadFile() {
         if (e.lengthComputable) {
             var percentage = (e.loaded / e.total) * 100;
             document.getElementById('progressBar').style.width = percentage + '%';
-            document.getElementById('progressPercentage').innerText = percentage.toFixed(2) + '% geladen';
+            document.getElementById('progressPercentage').innerText = percentage.toFixed(2) + '% loaded';
         }
     };
 
     xhr.onload = function() {
         if (xhr.status == 200) {
-            document.getElementById('progressPercentage').innerText = 'Upload voltooid!';
+            document.getElementById('progressPercentage').innerText = 'Upload ready!';
             document.getElementById('progressBar').style.width = '100%';
         } else {
-            document.getElementById('progressPercentage').innerText = 'Fout bij uploaden: ' + xhr.statusText;
+            document.getElementById('progressPercentage').innerText = 'Upload error: ' + xhr.statusText;
         }
     };
 
