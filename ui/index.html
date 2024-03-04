@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Bestand Uploaden</title>
+    <title>Bestand Uploaden en Commando Uitvoer</title>
 </head>
 <body>
 
@@ -10,42 +10,46 @@
 <input type="file" id="fileInput" name="file">
 <button onclick="uploadFile()">Uploaden</button>
 
-<div id="progressBar" style="width: 0%; height: 20px; background-color: #0d6efd;"></div>
-<div id="progressText"></div>
+<div style="margin-top: 20px;">
+    Voortgang: <progress id="uploadProgress" value="0" max="100"></progress> <span id="progressPercentage">0%</span>
+</div>
+
+<h2>Commando Uitvoer</h2>
+<pre id="commandOutput">Wachten op data...</pre>
 
 <script>
 function uploadFile() {
     var fileInput = document.getElementById('fileInput');
     var file = fileInput.files[0];
+    var formData = new FormData();
+    formData.append('file', file);
 
-    if (file) {
-        var formData = new FormData();
-        formData.append('file', file);
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '/upload', true);
 
-        var xhr = new XMLHttpRequest();
-        xhr.open('POST', '/upload', true);
+    xhr.upload.onprogress = function(e) {
+        if (e.lengthComputable) {
+            var percentage = (e.loaded / e.total) * 100;
+            document.getElementById('uploadProgress').value = percentage;
+            document.getElementById('progressPercentage').innerText = percentage.toFixed(2) + '%';
+        }
+    };
 
-        // Voortgangsevent voor het uploaden
-        xhr.upload.onprogress = function(e) {
-            if (e.lengthComputable) {
-                var percentComplete = (e.loaded / e.total) * 100;
-                document.getElementById('progressBar').style.width = percentComplete + '%';
-                document.getElementById('progressText').innerText = percentComplete.toFixed(2) + '% geladen';
-            }
-        };
+    xhr.onload = function() {
+        if (xhr.status == 200) {
+            document.getElementById('progressPercentage').innerText = 'Upload voltooid!';
+        } else {
+            document.getElementById('progressPercentage').innerText = 'Fout bij uploaden: ' + xhr.statusText;
+        }
+    };
 
-        // Voltooiing van het verzoek
-        xhr.onload = function() {
-            if (xhr.status == 200) {
-                document.getElementById('progressText').innerText = 'Upload voltooid!';
-            } else {
-                document.getElementById('progressText').innerText = 'Fout bij uploaden: ' + xhr.statusText;
-            }
-        };
-
-        xhr.send(formData);
-    }
+    xhr.send(formData);
 }
+
+var evtSource = new EventSource("/events");
+evtSource.onmessage = function(event) {
+    document.getElementById('commandOutput').textContent = event.data.replace(/\\n/g, '\n');
+};
 </script>
 
 </body>
