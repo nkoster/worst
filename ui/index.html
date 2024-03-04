@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Bestand Uploaden</title>
+</head>
+<body>
+
+<h2>Upload Bestand</h2>
+<input type="file" id="fileInput" name="file">
+<button onclick="uploadFile()">Uploaden</button>
+
+<div id="progressBar" style="width: 0%; height: 20px; background-color: #0d6efd;"></div>
+<div id="progressText"></div>
+
+<script>
+function uploadFile() {
+    var fileInput = document.getElementById('fileInput');
+    var file = fileInput.files[0];
+
+    if (file) {
+        var formData = new FormData();
+        formData.append('file', file);
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/upload', true);
+
+        // Voortgangsevent voor het uploaden
+        xhr.upload.onprogress = function(e) {
+            if (e.lengthComputable) {
+                var percentComplete = (e.loaded / e.total) * 100;
+                document.getElementById('progressBar').style.width = percentComplete + '%';
+                document.getElementById('progressText').innerText = percentComplete.toFixed(2) + '% geladen';
+            }
+        };
+
+        // Voltooiing van het verzoek
+        xhr.onload = function() {
+            if (xhr.status == 200) {
+                document.getElementById('progressText').innerText = 'Upload voltooid!';
+            } else {
+                document.getElementById('progressText').innerText = 'Fout bij uploaden: ' + xhr.statusText;
+            }
+        };
+
+        xhr.send(formData);
+    }
+}
+</script>
+
+</body>
+</html>
