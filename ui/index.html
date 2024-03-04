@@ -32,7 +32,7 @@
 </div>
 <div id="progressPercentage">0%</div>
 
-<pre id="commandOutput">Analyze report will appear here, please wait...</pre>
+<pre id="commandOutput"></pre>
 
 <script>
 function uploadFile() {
@@ -55,6 +55,8 @@ function uploadFile() {
     xhr.onload = function() {
         if (xhr.status == 200) {
             document.getElementById('progressPercentage').innerText = 'Upload ready!';
+            document.getElementById('progressPercentage').innerText = document.getElementById('fileInput').files[0].name + ' upload ready!'
+            document.getElementById('commandOutput').innerText = 'Report will appear here, please wait...'
             document.getElementById('progressBar').style.width = '100%';
         } else {
             document.getElementById('progressPercentage').innerText = 'Upload error: ' + xhr.statusText;
