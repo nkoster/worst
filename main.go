@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	// Maak een global channel voor het versturen van commando output naar SSE clients
+	// Global channel voor het versturen van commando-output naar SSE clients
 	commandOutputChan = make(chan string)
 )
 
@@ -52,6 +52,13 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	fileName := filepath.Base(fileHeader.Filename)
 	filePath := filepath.Join(fileDir, fileName)
 
+	fileExt := strings.ToLower(filepath.Ext(fileName))
+	allowedExts := map[string]bool{".mp3": true, ".wav": true, ".ogg": true}
+	if _, ok := allowedExts[fileExt]; !ok {
+		http.Error(w, "Ongeldig bestandsformaat", http.StatusBadRequest)
+		return
+	}
+
 	dst, err := os.Create(filePath)
 	if err != nil {
 		http.Error(w, "Fout bij het aanmaken van bestand", http.StatusInternalServerError)
@@ -64,11 +71,12 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Uitvoeren van het commando na succesvolle upload
 	go func() {
-		// Voer het commando uit en stuur de output naar het channel
 		output, err := executeCommand("ls", []string{"-l", filePath})
 		if err != nil {
-			output = "Fout bij het uitvoeren van het commando: " + err.Error()
+			log.Printf("Fout bij het uitvoeren van commando: %v", err)
+			output = "Fout bij het uitvoeren van commando"
 		}
 		commandOutputChan <- output
 	}()
@@ -87,7 +95,6 @@ func eventsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 
-	// Luister naar het channel en stuur data naar de client
 	for {
 		select {
 		case output := <-commandOutputChan:
