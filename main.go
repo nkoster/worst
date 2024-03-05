@@ -54,7 +54,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	filePath := filepath.Join(fileDir, fileName)
 
 	fileExt := strings.ToLower(filepath.Ext(fileName))
-	allowedExts := map[string]bool{".mp3": true, ".wav": true, ".ogg": true}
+	allowedExts := map[string]bool{".mp3": true, ".wav": true, ".ogg": true, ".webm": true}
 	if _, ok := allowedExts[fileExt]; !ok {
 		http.Error(w, "File format not allowed", http.StatusBadRequest)
 		return
