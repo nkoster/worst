@@ -2,119 +2,180 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Bestand Uploaden en Commando Uitvoer</title>
+    <title>Audio File Analyzer</title>
     <style>
         body {
             font-family: 'Arial', 'Helvetica', sans-serif;
+            margin-left: 40px;
+            text-align: center;
         }
+
+        #container {
+            /*background-color: #f3f3f3;*/
+            margin-left: 20%;
+            margin-right: 20%;
+            padding: 20px;
+        }
+
+        #progressContainer {
+            display: none;
+        }
+
         #progressBarContainer {
             margin-top: 10px;
             width: 100%;
             background-color: #ddd;
         }
+
         #progressBar {
-            width: 0%;
+            width: 0;
             height: 30px;
             background-color: #0d6efd;
         }
+
         #progressPercentage {
             margin-top: 10px;
         }
+
         #commandOutput {
             white-space: pre-wrap;
-            /* background-color: #f4f4f4;
-            border: 1px solid #ddd;
-            padding: 10px; */
+        }
+
+        .fromleft {
+            display: inline-block;
+            text-align: left;
+        }
+
+        .moveUp {
+            margin-top: -20px;
+        }
+
+        .spinner {
+            width: 4px;
+            height: 14px;
+            border-radius: 2px;
+            vertical-align: -2px;
+            display: inline-block;
+            background-color: #0d6efd;
+            animation: spin 2s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
         }
     </style>
 </head>
 <body>
 
-<h2>Audio file analyzer</h2>
-<input type="file" id="fileInput" name="file" accept=".mp3,.wav,.ogg,.webm">
-<button id="uploadButton" onclick="uploadFile()" disabled>Upload MP3/WAV/OGG</button>
+<div id="container">
 
-<div id="progressBarContainer">
-    <div id="progressBar"></div>
+    <h2>Audio File Analyzer</h2>
+    <h6 class="moveUp">v0.1 (beta)</h6>
+    <input type="file" id="fileInput" name="file" accept=".mp3,.wav,.ogg,.webm">
+    <button id="uploadButton" onclick="uploadFile()" disabled>Upload MP3/WAV/OGG</button>
+
+    <div id="progressContainer">
+        <div id="progressBarContainer">
+            <div id="progressBar"></div>
+        </div>
+
+        <div id="progressPercentage">0%</div>
+    </div>
+
+    <pre id="commandOutput"></pre>
+
+    <script>
+      const fileInput = document.getElementById('fileInput')
+      const uploadButton = document.getElementById('uploadButton')
+      const progressContainer = document.getElementById('progressContainer')
+      const commandOutput = document.getElementById('commandOutput')
+
+      let name
+
+      fileInput.addEventListener('change', function () {
+        uploadButton.disabled = fileInput.files.length <= 0
+      })
+
+      function uploadFile() {
+        progressContainer.style.display = 'block'
+        commandOutput.innerHTML = ''
+        const fileInput = document.getElementById('fileInput')
+        const file = fileInput.files[0]
+        name = document.getElementById('fileInput').files[0].name
+        const formData = new FormData()
+        formData.append('file', file)
+        const xhr = new XMLHttpRequest()
+        xhr.open('POST', '/upload', true)
+
+        xhr.upload.onprogress = function (e) {
+          if (e.lengthComputable) {
+            const percentage = (e.loaded / e.total) * 100
+            document.getElementById('progressBar').style.width = percentage + '%'
+            document.getElementById('progressPercentage').innerText = percentage.toFixed(2) + '% loaded'
+          }
+        }
+
+        xhr.onload = function () {
+          if (xhr.status === 200) {
+            const newFileInput = document.createElement('input')
+            newFileInput.type = 'file'
+            newFileInput.id = 'fileInput'
+            newFileInput.name = 'fileInput'
+            fileInput.parentNode.replaceChild(newFileInput, fileInput)
+            uploadButton.disabled = true
+            progressContainer.style.display = 'none'
+            newFileInput.addEventListener('change', function () {
+              uploadButton.disabled = fileInput.files.length <= 0
+            })
+
+            document.getElementById('progressPercentage').innerText = 'Upload ready. Analyzing ' + name
+            document.getElementById('commandOutput').innerHTML =
+              'Analyzing ' + name + '... &nbsp<span class="spinner"></span><br><small>(please stand by, this can take a while)</small>'
+            document.getElementById('progressBar').style.width = '100%'
+          } else {
+            document.getElementById('progressPercentage').innerText = 'Upload error: ' + xhr.statusText
+          }
+        }
+        xhr.send(formData)
+      }
+
+      const evtSource = new EventSource('/events')
+
+      evtSource.onmessage = function (event) {
+        commandOutput.innerHTML = '' + name + ' analysis:\n\n<div class="fromleft">' + event.data.replace(/\\n/g, '\n') +
+          '</div><br><img src="files/' + name + '.png" alt="' + name + '">'
+        const lines = event.data.replace(/\\n/g, '\n').trim().split('\n')
+        const values = {}
+
+        lines.forEach(line => {
+          const [key, value] = line.split(':').map(part => part.trim())
+          if (!isNaN(parseFloat(value))) {
+            values[key.replace(/\s+/g, '')] = parseFloat(value)
+          } else {
+            values[key.replace(/\s+/g, '')] = value
+          }
+        })
+        /*   // One can use a single value to compare with a threshold
+        const inputIntegrated = values['InputIntegrated'];
+        const inputTruePeak = values['InputTruePeak'];
+        const inputLRA = values['InputLRA'];
+        const inputThreshold = values['InputThreshold'];
+        const outputIntegrated = values['OutputIntegrated'];
+        const outputTruePeak = values['OutputTruePeak'];
+        const outputLRA = values['OutputLRA'];
+        const outputThreshold = values['OutputThreshold'];
+        const normalizationType = values['NormalizationType'];
+        const targetOffset = values['TargetOffset'];
+        */
+        console.log(values)
+
+      }
+    </script>
 </div>
-
-<div id="progressPercentage">0%</div>
-
-<pre id="commandOutput"></pre>
-
-<script>
-var fileInput = document.getElementById('fileInput');
-var uploadButton = document.getElementById('uploadButton');
-
-fileInput.addEventListener('change', function() {
-if(fileInput.files.length > 0) {
-    uploadButton.disabled = false;
-} else {
-    uploadButton.disabled = true;
-}
-});
-
-function uploadFile() {
-    var fileInput = document.getElementById('fileInput');
-    var file = fileInput.files[0];
-    var formData = new FormData();
-    formData.append('file', file);
-
-    var xhr = new XMLHttpRequest();
-    xhr.open('POST', '/upload', true);
-
-    xhr.upload.onprogress = function(e) {
-        if (e.lengthComputable) {
-            var percentage = (e.loaded / e.total) * 100;
-            document.getElementById('progressBar').style.width = percentage + '%';
-            document.getElementById('progressPercentage').innerText = percentage.toFixed(2) + '% loaded';
-        }
-    };
-
-    xhr.onload = function() {
-        if (xhr.status == 200) {
-            document.getElementById('progressPercentage').innerText = 'Upload ready. Analyzing ' + document.getElementById('fileInput').files[0].name;
-            document.getElementById('commandOutput').innerText = '25 seconds report will appear here, please wait...'
-            document.getElementById('progressBar').style.width = '100%';
-        } else {
-            document.getElementById('progressPercentage').innerText = 'Upload error: ' + xhr.statusText;
-        }
-    };
-
-    xhr.send(formData);
-}
-
-var evtSource = new EventSource("/events");
-evtSource.onmessage = function(event) {
-    document.getElementById('progressPercentage').innerText = 'Report for ' + document.getElementById('fileInput').files[0].name;
-    document.getElementById('commandOutput').textContent = event.data.replace(/\\n/g, '\n');
-    const lines = event.data.replace(/\\n/g, '\n').trim().split('\n');
-    const values = {};
-    lines.forEach(line => {
-        const [key, value] = line.split(':').map(part => part.trim());
-        if (!isNaN(parseFloat(value))) {
-            values[key.replace(/\s+/g, '')] = parseFloat(value);
-        } else {
-            values[key.replace(/\s+/g, '')] = value;
-        }
-    });
-
-    // Nu kun je de waarden gebruiken als:
-    const inputIntegrated = values['InputIntegrated'];
-    const inputTruePeak = values['InputTruePeak'];
-    const inputLRA = values['InputLRA'];
-    const inputThreshold = values['InputThreshold'];
-    const outputIntegrated = values['OutputIntegrated'];
-    const outputTruePeak = values['OutputTruePeak'];
-    const outputLRA = values['OutputLRA'];
-    const outputThreshold = values['OutputThreshold'];
-    const normalizationType = values['NormalizationType'];
-    const targetOffset = values['TargetOffset'];
-
-    console.log(values)
-
-};
-</script>
-
 </body>
 </html>
