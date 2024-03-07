@@ -22,8 +22,8 @@ func main() {
 	http.HandleFunc("/events", eventsHandler)
 	http.Handle("/", http.FileServer(http.Dir("./ui")))
 
-	fmt.Println("Server running: http://localhost:3000")
-	if err := http.ListenAndServe(":3000", nil); err != nil {
+	fmt.Println("Server running: http://localhost:3456")
+	if err := http.ListenAndServe(":3456", nil); err != nil {
 		log.Fatalf("Error starting server: %v", err)
 	}
 }
@@ -72,7 +72,8 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ffmpegCmd := fmt.Sprintf("timeout --foreground 25 ffmpeg -i \"%s\" -af loudnorm=I=-16:dual_mono=true:TP=-1.5:LRA=11:print_format=summary -f null -", filePath)
+	// ffmpegCmd := fmt.Sprintf("timeout --foreground 25 ffmpeg -i \"%s\" -af loudnorm=I=-16:dual_mono=true:TP=-1.5:LRA=11:print_format=summary -f null -", filePath)
+	ffmpegCmd := fmt.Sprintf("ffmpeg -i \"%s\" -y -filter_complex \"aformat=channel_layouts=stereo,showwavespic=s=700x120:colors=0D6EFD|0000000\" -frames:v 1 \"./ui/%s.png\" -af loudnorm=I=-16:dual_mono=true:TP=-1.5:LRA=11:print_format=summary -f null -", filePath, filePath)
 
 	go func() {
 		output, err := executeFFmpegCommand(ffmpegCmd)
@@ -84,7 +85,8 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		commandOutputChan <- output
 	}()
-
+	// Firefox hack: voeg een extra newline toe om de SSE-verbinding te forceren
+	commandOutputChan <- "\n"
 	w.Write([]byte("Upload ready\n"))
 }
 
