@@ -154,6 +154,10 @@
       const evtSource = new EventSource('/events')
 
       evtSource.onmessage = function (event) {
+        console.log('EVENT DATA', event.data)
+        if (event.data.length < 10) {
+          return
+        }
         commandOutput.innerHTML = '' + name + ' analysis:\n\n<div class="fromLeft">' + event.data.replace(/\\n/g, '\n') +
           '</div><br><img src="files/' + name + '.png" alt="' + name + '">'
         const lines = event.data.replace(/\\n/g, '\n').trim().split('\n')
