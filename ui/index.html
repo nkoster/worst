@@ -41,7 +41,7 @@
             white-space: pre-wrap;
         }
 
-        .fromleft {
+        .fromLeft {
             display: inline-block;
             text-align: left;
         }
@@ -147,7 +147,7 @@
       const evtSource = new EventSource('/events')
 
       evtSource.onmessage = function (event) {
-        commandOutput.innerHTML = '' + name + ' analysis:\n\n<div class="fromleft">' + event.data.replace(/\\n/g, '\n') +
+        commandOutput.innerHTML = '' + name + ' analysis:\n\n<div class="fromLeft">' + event.data.replace(/\\n/g, '\n') +
           '</div><br><img src="files/' + name + '.png" alt="' + name + '">'
         const lines = event.data.replace(/\\n/g, '\n').trim().split('\n')
         const values = {}
