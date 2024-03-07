@@ -76,8 +76,8 @@
 
     <h2>Audio File Analyzer</h2>
     <h6 class="moveUp">v0.1 (beta)</h6>
-    <input type="file" id="fileInput" name="file" accept=".mp3,.wav,.ogg,.webm">
-    <button id="uploadButton" onclick="uploadFile()" disabled>Upload MP3/WAV/OGG</button>
+    <input type="file" id="fileInput" name="file" accept=".mp3,.wav,.ogg,.m4a,.opus">
+    <button id="uploadButton" onclick="uploadFile()" disabled>Upload MP3/WAV/OGG/M4A/OPUS</button>
 
     <div id="progressContainer">
         <div id="progressBarContainer">
@@ -90,6 +90,13 @@
     <pre id="commandOutput"></pre>
 
     <script>
+
+      if (navigator.userAgent.includes("Firefox")) {
+        console.log('Firefox detected')
+        document.body.style.transform = "scale(1.33)";
+        document.body.style.marginTop = "50px";
+      }
+
       const fileInput = document.getElementById('fileInput')
       const uploadButton = document.getElementById('uploadButton')
       const progressContainer = document.getElementById('progressContainer')
