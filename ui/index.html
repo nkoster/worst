@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Audio File Analyzer</title>
+    <title>♫ Audio File Analyzer ♫</title>
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
     <style>
         body {
             font-family: 'Arial', 'Helvetica', sans-serif;
@@ -10,8 +11,29 @@
             text-align: center;
         }
 
+        table {
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            text-align: right;
+            padding: 3px 6px;
+        }
+
+        th {
+            padding-bottom: 8px;
+        }
+
+        td.left {
+            text-align: left;
+        }
+
+        tr.gray {
+            background-color: #f3f3f3;
+        }
+
         #container {
-            /*background-color: #f3f3f3;*/
             margin-left: 20%;
             margin-right: 20%;
             padding: 20px;
@@ -38,16 +60,23 @@
         }
 
         #commandOutput {
-            white-space: pre-wrap;
-        }
-
-        .fromLeft {
-            display: inline-block;
-            text-align: left;
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
         }
 
         .moveUp {
             margin-top: -20px;
+        }
+
+        .marginTop {
+            margin-top: 20px;
+        }
+
+        .bold {
+            font-weight: bold;
         }
 
         .spinner {
@@ -74,10 +103,11 @@
 
 <div id="container">
 
-    <h2>Audio File Analyzer</h2>
-    <h6 class="moveUp">v0.1 (beta)</h6>
-    <input type="file" id="fileInput" name="file" accept=".mp3,.wav,.ogg,.m4a,.opus">
-    <button id="uploadButton" onclick="uploadFile()" disabled>Upload MP3/WAV/OGG/M4A/OPUS</button>
+    <h2>♫ Audio File Analyzer ♫</h2>
+    <h6 class="moveUp">v0.2 (beta)</h6>
+    <div><sup>use mp3, wav, ogg, aiff, aac, m4a, opus, flac or wma</sup></div>
+    <input type="file" id="fileInput" name="file" accept=".mp3,.wav,.ogg,.aiff,.aac,.m4a,.opus,.flac,.wma">
+    <button id="uploadButton" onclick="uploadFile()" disabled>Upload</button>
 
     <div id="progressContainer">
         <div id="progressBarContainer">
@@ -87,14 +117,14 @@
         <div id="progressPercentage">0%</div>
     </div>
 
-    <pre id="commandOutput"></pre>
+    <div id="commandOutput"></div>
 
     <script>
 
-      if (navigator.userAgent.includes("Firefox")) {
+      if (navigator.userAgent.includes('Firefox')) {
         console.log('Firefox detected')
-        document.body.style.transform = "scale(1.33)";
-        document.body.style.marginTop = "50px";
+        document.body.style.transform = 'scale(1.25)'
+        document.body.style.marginTop = '40px'
       }
 
       const fileInput = document.getElementById('fileInput')
@@ -142,7 +172,7 @@
 
             document.getElementById('progressPercentage').innerText = 'Upload ready. Analyzing ' + name
             document.getElementById('commandOutput').innerHTML =
-              'Analyzing ' + name + '... &nbsp<span class="spinner"></span><br><small>(please stand by, this can take a while)</small>'
+              '<div>Analyzing <b>' + name + '</b>... &nbsp<span class="spinner"></span><br><small>(please stand by, this can take a while)</small></div>'
             document.getElementById('progressBar').style.width = '100%'
           } else {
             document.getElementById('progressPercentage').innerText = 'Upload error: ' + xhr.statusText
@@ -154,12 +184,9 @@
       const evtSource = new EventSource('/events')
 
       evtSource.onmessage = function (event) {
-        console.log('EVENT DATA', event.data)
         if (event.data.length < 10) {
           return
         }
-        commandOutput.innerHTML = '' + name + ' analysis:\n\n<div class="fromLeft">' + event.data.replace(/\\n/g, '\n') +
-          '</div><br><img src="files/' + name + '.png" alt="' + name + '">'
         const lines = event.data.replace(/\\n/g, '\n').trim().split('\n')
         const values = {}
 
@@ -171,20 +198,56 @@
             values[key.replace(/\s+/g, '')] = value
           }
         })
-        /*   // One can use a single value to compare with a threshold
-        const inputIntegrated = values['InputIntegrated'];
-        const inputTruePeak = values['InputTruePeak'];
-        const inputLRA = values['InputLRA'];
-        const inputThreshold = values['InputThreshold'];
-        const outputIntegrated = values['OutputIntegrated'];
-        const outputTruePeak = values['OutputTruePeak'];
-        const outputLRA = values['OutputLRA'];
-        const outputThreshold = values['OutputThreshold'];
+        const innerTable = `
+        <table>
+            <tr>
+                <th></th>
+                <th><div style="transform: translateX(2px);">Input</div></th>
+                <th><div style="transform: translateX(10px);">Output</div></th>
+                <th></th>
+            </tr>
+            <tr class="gray">
+                <td>Integrated</td>
+                <td class="bold">${fn(values['InputIntegrated'])}</td>
+                <td class="bold">${fn(values['OutputIntegrated'])}</td>
+                <td class="left"> &nbsp; &nbsp; LUFS</td>
+            </tr>
+            <tr>
+                <td>True Peak</td>
+                <td class="bold">${fn(values['InputTruePeak'])}</td>
+                <td class="bold">${fn(values['OutputTruePeak'])}</td>
+                <td class="left"> &nbsp; &nbsp; dBTP</td>
+            </tr>
+            <tr class="gray">
+                <td>LRA</td>
+                <td class="bold">${fn(values['InputLRA'])}</td>
+                <td class="bold">${fn(values['OutputLRA'])}</td>
+                <td class="left"> &nbsp; &nbsp; LU</td>
+            </tr>
+            <tr>
+                <td>Threshold</td>
+                <td class="bold">${fn(values['InputThreshold'])}</td>
+                <td class="bold">${fn(values['OutputThreshold'])}</td>
+                <td class="left"> &nbsp; &nbsp; LUFS</td>
+            </tr>
+        </table>`
+        commandOutput.innerHTML = '<div><b>' + name + '</b>' + ' analysis:</div>' +
+          `<div class="marginTop">Normalization Type: <b>${values['NormalizationType']}</b> &nbsp; &nbsp; Target Offset: <b>${values['TargetOffset']}</b></div>` +
+          innerTable + '<img src="files/' + name + '.png" alt="' + name + '">'
+
+        /*
         const normalizationType = values['NormalizationType'];
         const targetOffset = values['TargetOffset'];
         */
-        console.log(values)
 
+      }
+
+      function fn(num) {
+        if (isNaN(num)) {
+          return '#'
+        } else {
+          return num.toFixed(1)
+        }
       }
     </script>
 </div>
