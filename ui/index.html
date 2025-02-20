@@ -89,6 +89,11 @@
             animation: spin 2s linear infinite;
         }
 
+        .worst {
+            width: 310px;
+            border-radius: 20px;
+        }
+
         @keyframes spin {
             0% {
                 transform: rotate(0deg);
@@ -104,7 +109,7 @@
 <div id="container">
 
     <h2>♫ Audio File Analyzer ♫</h2>
-    <h6 class="moveUp">v0.2 (beta)</h6>
+    <h6 class="moveUp">v0.3 (beta)</h6>
     <div><sup>use mp3, wav, ogg, aiff, aac, m4a, opus, flac or wma</sup></div>
     <input type="file" id="fileInput" name="file" accept=".mp3,.wav,.ogg,.aiff,.aac,.m4a,.opus,.flac,.wma">
     <button id="uploadButton" onclick="uploadFile()" disabled>Upload</button>
@@ -131,6 +136,7 @@
       const uploadButton = document.getElementById('uploadButton')
       const progressContainer = document.getElementById('progressContainer')
       const commandOutput = document.getElementById('commandOutput')
+      commandOutput.innerHTML = '<img class="worst" src="/audiouploader/worstwave.png" alt="worst analyzer">'
 
       let name
 
@@ -147,7 +153,7 @@
         const formData = new FormData()
         formData.append('file', file)
         const xhr = new XMLHttpRequest()
-        xhr.open('POST', '/upload', true)
+        xhr.open('POST', '/droneuploader/upload', true)
 
         xhr.upload.onprogress = function (e) {
           if (e.lengthComputable) {
@@ -181,7 +187,7 @@
         xhr.send(formData)
       }
 
-      const evtSource = new EventSource('/events')
+      const evtSource = new EventSource('/droneuploader/events')
 
       evtSource.onmessage = function (event) {
         if (event.data.length < 10) {
