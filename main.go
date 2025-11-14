@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 var (
@@ -19,11 +21,32 @@ var (
 )
 
 func main() {
-	// TODO: make dynamic, use .env
-	http.HandleFunc("/droneuploader/upload", uploadHandler)
-	http.HandleFunc("/droneuploader/events", eventsHandler)
-	// TODO: CLI configurable
-	//http.Handle("/droneuploader/ui", http.FileServer(http.Dir("/home/pot/html/ui")))
+
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	uploadURL := os.Getenv("UPLOAD_URL")
+	if uploadURL == "" {
+		uploadURL = "/upload"
+	}
+	http.HandleFunc(uploadURL, uploadHandler)
+	fmt.Println("Upload URL: ", uploadURL)
+
+	eventsURL := os.Getenv("EVENTS_URL")
+	if eventsURL == "" {
+		eventsURL = "/events"
+	}
+	http.HandleFunc(eventsURL, eventsHandler)
+	fmt.Println("Events URL: ", eventsURL)
+
+	directoryUI := os.Getenv("UI")
+	if directoryUI == "" {
+		directoryUI = "./ui"
+	}
+	http.Handle("/", http.FileServer(http.Dir(directoryUI)))
+	fmt.Println("UI directory: ", directoryUI)
 
 	fmt.Println("Server running: http://localhost:3456")
 	if err := http.ListenAndServe(":3456", nil); err != nil {
@@ -38,7 +61,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO: Make dynamic, use .env
-	const fileDir = "./files"
+	const fileDir = "./ui/files"
 	_ = os.MkdirAll(fileDir, os.ModePerm)
 
 	const maxUploadSize = 1024 * 1024 * 1024 // 1GB
@@ -85,7 +108,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("File uploaded: ", filePath)
 	// TODO: Dynamic ffmpeg command args
 	// ffmpegCmd := fmt.Sprintf("timeout --foreground 25 ffmpeg -i \"%s\" -af loudnorm=I=-16:dual_mono=true:TP=-1.5:LRA=11:print_format=summary -f null -", filePath)
-	ffmpegCmd := fmt.Sprintf("ffmpeg -i \"%s\" -y -filter_complex \"aformat=channel_layouts=stereo,showwavespic=s=700x120:colors=0D6EFD|0000000\" -frames:v 1 \"/home/pot/html/audiouploader/%s.png\" -af loudnorm=I=-16:dual_mono=true:TP=-1.5:LRA=11:print_format=summary -f null -", filePath, filePath)
+	ffmpegCmd := fmt.Sprintf("ffmpeg -i \"%s\" -y -filter_complex \"aformat=channel_layouts=stereo,showwavespic=s=700x120:colors=0D6EFD|0000000\" -frames:v 1 \"%s.png\" -af loudnorm=I=-16:dual_mono=true:TP=-1.5:LRA=11:print_format=summary -f null -", filePath, filePath)
 
 	go func() {
 		output, err := executeFFmpegCommand(ffmpegCmd)
