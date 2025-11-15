@@ -21,6 +21,7 @@ var (
 )
 
 var fileDir string
+var graphColor string
 
 func main() {
 
@@ -54,6 +55,13 @@ func main() {
 	if directoryUI == "" {
 		directoryUI = "./ui"
 	}
+
+	graphColor = os.Getenv("GRAPH_COLOR")
+	if graphColor == "" {
+		graphColor = "0099CE"
+	}
+	fmt.Println("Graph color: ", graphColor)
+
 	http.Handle("/", http.FileServer(http.Dir(directoryUI)))
 	fmt.Println("UI directory: ", directoryUI)
 
@@ -115,7 +123,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("File uploaded: ", filePath)
 	// TODO: Dynamic ffmpeg command args
 	// ffmpegCmd := fmt.Sprintf("timeout --foreground 25 ffmpeg -i \"%s\" -af loudnorm=I=-16:dual_mono=true:TP=-1.5:LRA=11:print_format=summary -f null -", filePath) kleurcode: 0099CE
-	ffmpegCmd := fmt.Sprintf("ffmpeg -i \"%s\" -y -filter_complex \"aformat=channel_layouts=stereo,showwavespic=s=700x120:colors=0099CE|0000000\" -frames:v 1 \"%s.png\" -af loudnorm=I=-16:dual_mono=true:TP=-1.5:LRA=11:print_format=summary -f null -", filePath, filePath)
+	ffmpegCmd := fmt.Sprintf("ffmpeg -i \"%s\" -y -filter_complex \"aformat=channel_layouts=stereo,showwavespic=s=700x120:colors=%s|0000000\" -frames:v 1 \"%s.png\" -af loudnorm=I=-16:dual_mono=true:TP=-1.5:LRA=11:print_format=summary -f null -", filePath, graphColor, filePath)
 
 	go func() {
 		output, err := executeFFmpegCommand(ffmpegCmd)
