@@ -20,6 +20,8 @@ var (
 	commandOutputChan = make(chan string)
 )
 
+var fileDir string
+
 func main() {
 
 	err := godotenv.Load()
@@ -38,6 +40,13 @@ func main() {
 	if eventsURL == "" {
 		eventsURL = "/events"
 	}
+
+	fileDir = os.Getenv("FILE_DIR")
+	if fileDir == "" {
+		fileDir = "./ui/files"
+	}
+	fmt.Println("File directory: ", fileDir)
+
 	http.HandleFunc(eventsURL, eventsHandler)
 	fmt.Println("Events URL: ", eventsURL)
 
@@ -60,8 +69,6 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Make dynamic, use .env
-	const fileDir = "./ui/files"
 	_ = os.MkdirAll(fileDir, os.ModePerm)
 
 	const maxUploadSize = 1024 * 1024 * 1024 // 1GB
